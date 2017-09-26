@@ -582,6 +582,19 @@ public class ExtensionLoader<T> {
             }
         }
 
+
+        //com.alibaba.dubbo.common.serialize.Serialization
+        //..../internal/com.alibaba.dubbo.common.serialize.Serialization
+
+//        dubbo=com.alibaba.dubbo.common.serialize.support.dubbo.DubboSerialization
+//        hessian2=com.alibaba.dubbo.common.serialize.support.hessian.Hessian2Serialization
+//        java=com.alibaba.dubbo.common.serialize.support.java.JavaSerialization
+//        compactedjava=com.alibaba.dubbo.common.serialize.support.java.CompactedJavaSerialization
+//        json=com.alibaba.dubbo.common.serialize.support.json.JsonSerialization
+//        fastjson=com.alibaba.dubbo.common.serialize.support.json.FastJsonSerialization
+//        nativejava=com.alibaba.dubbo.common.serialize.support.nativejava.NativeJavaSerialization
+
+        //非包装实现类并且非Adaptive标注类才加入返回结果
         Map<String, Class<?>> extensionClasses = new HashMap<String, Class<?>>();
         loadFile(extensionClasses, DUBBO_INTERNAL_DIRECTORY);
         loadFile(extensionClasses, DUBBO_DIRECTORY);
@@ -590,7 +603,10 @@ public class ExtensionLoader<T> {
     }
 
     private void loadFile(Map<String, Class<?>> extensionClasses, String dir) {
+        //..../internal/com.alibaba.dubbo.common.serialize.Serialization
         String fileName = dir + type.getName();
+
+
         try {
             Enumeration<java.net.URL> urls;
             ClassLoader classLoader = findClassLoader();
@@ -615,16 +631,23 @@ public class ExtensionLoader<T> {
                                         String name = null;
                                         int i = line.indexOf('=');
                                         if (i > 0) {
+                                            //key
                                             name = line.substring(0, i).trim();
+
+                                            //value (impl class name)
                                             line = line.substring(i + 1).trim();
                                         }
                                         if (line.length() > 0) {
                                             Class<?> clazz = Class.forName(line, true, classLoader);
+
+                                            //ensure clazz extends type
                                             if (!type.isAssignableFrom(clazz)) {
                                                 throw new IllegalStateException("Error when load extension class(interface: " +
                                                         type + ", class line: " + clazz.getName() + "), class "
                                                         + clazz.getName() + "is not subtype of interface.");
                                             }
+
+                                            //case Adaptive(only 1)
                                             if (clazz.isAnnotationPresent(Adaptive.class)) {
                                                 if (cachedAdaptiveClass == null) {
                                                     cachedAdaptiveClass = clazz;
@@ -635,6 +658,8 @@ public class ExtensionLoader<T> {
                                                 }
                                             } else {
                                                 try {
+                                                    //try
+                                                    //case wrapper
                                                     clazz.getConstructor(type);
                                                     Set<Class<?>> wrappers = cachedWrapperClasses;
                                                     if (wrappers == null) {
@@ -644,6 +669,8 @@ public class ExtensionLoader<T> {
                                                     wrappers.add(clazz);
                                                 } catch (NoSuchMethodException e) {
                                                     clazz.getConstructor();
+
+                                                    //case =JdkXxxImpl ,  find key through Extension
                                                     if (name == null || name.length() == 0) {
                                                         name = findAnnotationName(clazz);
                                                         if (name == null || name.length() == 0) {
@@ -655,18 +682,24 @@ public class ExtensionLoader<T> {
                                                             }
                                                         }
                                                     }
+
+
+                                                    //case jdk,jd2=JdkXxxImpl  ok
                                                     String[] names = NAME_SEPARATOR.split(name);
                                                     if (names != null && names.length > 0) {
                                                         Activate activate = clazz.getAnnotation(Activate.class);
                                                         if (activate != null) {
+                                                            //jdk -> Activate
                                                             cachedActivates.put(names[0], activate);
                                                         }
                                                         for (String n : names) {
                                                             if (!cachedNames.containsKey(clazz)) {
+                                                                //JdkXxxImpl -> jdk
                                                                 cachedNames.put(clazz, n);
                                                             }
                                                             Class<?> c = extensionClasses.get(n);
                                                             if (c == null) {
+                                                                //jdk -> JdkXxxImpl
                                                                 extensionClasses.put(n, clazz);
                                                             } else if (c != clazz) {
                                                                 throw new IllegalStateException("Duplicate extension " + type.getName() + " name " + n + " on " + c.getName() + " and " + clazz.getName());
@@ -719,6 +752,7 @@ public class ExtensionLoader<T> {
         }
     }
 
+    //标注 or 编译一个类
     private Class<?> getAdaptiveExtensionClass() {
         getExtensionClasses();
         if (cachedAdaptiveClass != null) {
@@ -728,6 +762,8 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> createAdaptiveExtensionClass() {
+        //生成实现了type接口的一个适配类
+        //适配类只实现标注了Adaptive注解的方法，其它方法默认抛异常
         String code = createAdaptiveExtensionClassCode();
         ClassLoader classLoader = findClassLoader();
         com.alibaba.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(com.alibaba.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
@@ -788,7 +824,7 @@ public class ExtensionLoader<T> {
                     // 找到参数的URL属性
                     LBL_PTS:
                     for (int i = 0; i < pts.length; ++i) {
-                        Method[] ms = pts[i].getMethods();
+                        Method[] ms = pts[i].getMethods();//参数类是否有get方法 并且返回URL类型
                         for (Method m : ms) {
                             String name = m.getName();
                             if ((name.startsWith("get") || name.length() > 3)
@@ -818,6 +854,7 @@ public class ExtensionLoader<T> {
                     s = String.format("%s url = arg%d.%s();", URL.class.getName(), urlTypeIndex, attribMethod);
                     code.append(s);
                 }
+                //以上是为了获取URL而写的逻辑
 
                 String[] value = adaptiveAnnotation.value();
                 // 没有设置Key，则使用“扩展点接口名的点分隔 作为Key
@@ -836,6 +873,8 @@ public class ExtensionLoader<T> {
                     }
                     value = new String[]{sb.toString()};
                 }
+                //extension.factory
+
 
                 boolean hasInvocation = false;
                 for (int i = 0; i < pts.length; ++i) {
@@ -850,7 +889,7 @@ public class ExtensionLoader<T> {
                     }
                 }
 
-                String defaultExtName = cachedDefaultName;
+                String defaultExtName = cachedDefaultName;//缓存的直接从SPI上取的值
                 String getNameCode = null;
                 for (int i = value.length - 1; i >= 0; --i) {
                     if (i == value.length - 1) {
@@ -881,6 +920,7 @@ public class ExtensionLoader<T> {
                             getNameCode = String.format("url.getProtocol() == null ? (%s) : url.getProtocol()", getNameCode);
                     }
                 }
+                //实际扩展名称
                 code.append("\nString extName = ").append(getNameCode).append(";");
                 // check extName == null?
                 String s = String.format("\nif(extName == null) " +
@@ -888,6 +928,7 @@ public class ExtensionLoader<T> {
                         type.getName(), Arrays.toString(value));
                 code.append(s);
 
+                //A extension = (A)PatternTest.getExtensionLoader(A.class).getExtension(extName);
                 s = String.format("\n%s extension = (%<s)%s.getExtensionLoader(%s.class).getExtension(extName);",
                         type.getName(), ExtensionLoader.class.getSimpleName(), type.getName());
                 code.append(s);
@@ -906,7 +947,9 @@ public class ExtensionLoader<T> {
                 }
                 code.append(");");
             }
+            //code部分结束
 
+            //生成方法签名
             codeBuidler.append("\npublic " + rt.getCanonicalName() + " " + method.getName() + "(");
             for (int i = 0; i < pts.length; i++) {
                 if (i > 0) {

@@ -36,9 +36,16 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
     public AdaptiveExtensionFactory() {
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
+
+        //adaptive
+        // spi
         for (String name : loader.getSupportedExtensions()) {
+
+            //adaptive=com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory
+            // spi=com.alibaba.dubbo.common.extension.factory.SpiExtensionFactory
             list.add(loader.getExtension(name));
         }
+
         factories = Collections.unmodifiableList(list);
     }
 

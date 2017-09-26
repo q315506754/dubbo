@@ -20,6 +20,8 @@ import com.alibaba.dubbo.common.extension.ExtensionLoader;
 import com.alibaba.dubbo.common.extension.SPI;
 
 /**
+ *
+ * 用来注入setXXX等spi类型
  * SpiExtensionFactory
  *
  * @author william.liangf
