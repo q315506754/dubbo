@@ -97,10 +97,21 @@ public abstract class AbstractConfig implements Serializable {
         return value;
     }
 
+    //对于config的所有setXX方法
+    //在如下地点寻找配置值，dubbo.provider.${id}.${property} 或 dubbo.provider.${property}
+    //1。System
+    //2。若没有，且getter对应invoke的为null，依顺序从下列直到找到一个path，加载properties
+    //2。1 property ：dubbo.properties.file
+    //2。2 env ：dubbo.properties.file
+    //2。3 dubbo.properties
+    //3。使用setter赋值
+
+
     protected static void appendProperties(AbstractConfig config) {
         if (config == null) {
             return;
         }
+        //dubbo.provider.
         String prefix = "dubbo." + getTagName(config.getClass()) + ".";
         Method[] methods = config.getClass().getMethods();
         for (Method method : methods) {
@@ -112,6 +123,7 @@ public abstract class AbstractConfig implements Serializable {
 
                     String value = null;
                     if (config.getId() != null && config.getId().length() > 0) {
+                        //dubbo.provider.${id}.
                         String pn = prefix + config.getId() + "." + property;
                         value = System.getProperty(pn);
                         if (!StringUtils.isBlank(value)) {
