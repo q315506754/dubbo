@@ -111,6 +111,8 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         }
     }
 
+    //delay为默认值返回true
+    //否则返回false
     private boolean isDelay() {
         Integer delay = getDelay();
         ProviderConfig provider = getProvider();

@@ -37,6 +37,15 @@ import java.util.regex.Pattern;
 /**
  * 配置解析的工具方法、公共方法
  *
+ * 主要是获取getter对应的属性的值，通过setter注入当前类实例
+ * 也可以从System这样的环境获取k-v键值对，通过setter注入当前类实例
+ *
+ * {@link static#appendProperties(AbstractConfig)} environment -> config
+ * {@link static#appendAttributes(Map, Object)}   Object->Map  overwrite
+ * {@link static#appendParameters(Map, Object)}  Object->Map append
+ *
+ * {@link #appendAnnotation(Class, Object)} Annotation -> this
+ *
  * @author william.liangf
  * @export
  */
@@ -98,15 +107,17 @@ public abstract class AbstractConfig implements Serializable {
     }
 
     //对于config的所有setXX方法
-    //在如下地点寻找配置值，dubbo.provider.${id}.${property} 或 dubbo.provider.${property}
-    //1。System
+    //在如下地点寻找配置值，dubbo.{provider:tagName}.${id}.${property} 或 dubbo.provider.${property}
+
+    //1。System 读取k-v
     //2。若没有，且getter对应invoke的为null，依顺序从下列直到找到一个path，加载properties
-    //2。1 property ：dubbo.properties.file
-    //2。2 env ：dubbo.properties.file
-    //2。3 dubbo.properties
+        //2。1 property ：dubbo.properties.file
+        //2。2 env ：dubbo.properties.file
+        //2。3 dubbo.properties
+        //2.4  读取k-v
     //3。使用setter赋值
 
-
+    //如果值包含 $m  通过regex获得在System property中的m的值并返回
     protected static void appendProperties(AbstractConfig config) {
         if (config == null) {
             return;
@@ -176,6 +187,7 @@ public abstract class AbstractConfig implements Serializable {
         }
     }
 
+    //AbstractConfig -> abstract
     private static String getTagName(Class<?> cls) {
         String tag = cls.getSimpleName();
         for (String suffix : SUFFIXS) {
@@ -193,6 +205,10 @@ public abstract class AbstractConfig implements Serializable {
     }
 
     @SuppressWarnings("unchecked")
+    /***
+     *  将config对象中的getXXX属性取出，->注入到map  parameters ，加前缀 ${prefix}.key -> value ，值可能prepend老的
+     *           或者getParameters对应的map属性全部加前缀 ${prefix}.key -> value
+     */
     protected static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
         if (config == null) {
             return;
@@ -218,6 +234,8 @@ public abstract class AbstractConfig implements Serializable {
                     } else {
                         key = prop;
                     }
+                    //注解定义优先 其次解析
+
                     Object value = method.invoke(config, new Object[0]);
                     String str = String.valueOf(value).trim();
                     if (value != null && str.length() > 0) {
@@ -263,6 +281,9 @@ public abstract class AbstractConfig implements Serializable {
         appendAttributes(parameters, config, null);
     }
 
+    /***
+     *  将config对象中的getXXX属性取出（必须有Parameter注解，且attribute=true），->注入到map  parameters , 直接覆盖老的，加前缀 ${prefix}.key -> value
+     */
     protected static void appendAttributes(Map<Object, Object> parameters, Object config, String prefix) {
         if (config == null) {
             return;
@@ -427,6 +448,12 @@ public abstract class AbstractConfig implements Serializable {
         this.id = id;
     }
 
+
+    /**
+     *  将注解实例中的属性xx通过setXx方法注入到当前类实例里
+     * @param annotationClass 注解类
+     * @param annotation 注解实例
+     */
     protected void appendAnnotation(Class<?> annotationClass, Object annotation) {
         Method[] methods = annotationClass.getMethods();
         for (Method method : methods) {
@@ -465,6 +492,10 @@ public abstract class AbstractConfig implements Serializable {
         }
     }
 
+    /**
+     * 该类的属性（拥有getter）将转成 xx=vv 这样的属性
+     * @return string <dubbo:protocol xx=vv ... />
+     */
     @Override
     public String toString() {
         try {

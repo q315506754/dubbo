@@ -23,6 +23,7 @@ import java.util.Map;
 
 /**
  * AbstractMethodConfig
+ * 主要是针对方法调用的一些元属性
  *
  * @author william.liangf
  * @export

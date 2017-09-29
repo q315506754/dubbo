@@ -43,6 +43,9 @@ import java.util.Map;
 /**
  * AbstractDefaultConfig
  *
+ *
+ * 几个load方法检查或生成默认配置
+ *
  * @author william.liangf
  * @export
  */
@@ -120,6 +123,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                     + Version.getVersion()
                     + ", Please add <dubbo:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");
         }
+        //setter注入环境kv
         for (RegistryConfig registryConfig : registries) {
             appendProperties(registryConfig);
         }
@@ -140,6 +144,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         }
         appendProperties(application);
 
+        //.props -> env
         String wait = ConfigUtils.getProperty(Constants.SHUTDOWN_WAIT_KEY);
         if (wait != null && wait.trim().length() > 0) {
             System.setProperty(Constants.SHUTDOWN_WAIT_KEY, wait.trim());

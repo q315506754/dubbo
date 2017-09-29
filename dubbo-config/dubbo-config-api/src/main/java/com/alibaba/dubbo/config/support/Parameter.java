@@ -23,6 +23,8 @@ import java.lang.annotation.Target;
 
 /**
  * Parameter
+ * 控制标注了该anno的属性getter的k-v如何生成
+ *
  *
  * @author william.liangf
  */
