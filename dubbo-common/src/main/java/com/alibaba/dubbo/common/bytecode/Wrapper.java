@@ -104,7 +104,7 @@ public abstract class Wrapper {
         return ret;
     }
 
-    private static Wrapper makeWrapper(Class<?> c) {
+    public static Wrapper makeWrapper(Class<?> c) {
         if (c.isPrimitive())
             throw new IllegalArgumentException("Can not create wrapper for primitive type: " + c);
 
@@ -146,6 +146,7 @@ public abstract class Wrapper {
             if (m.getDeclaringClass() == Object.class) //ignore Object's method.
                 continue;
 
+            //if ------------start
             String mn = m.getName();
             c3.append(" if( \"").append(mn).append("\".equals( $2 ) ");
             int len = m.getParameterTypes().length;
@@ -168,7 +169,10 @@ public abstract class Wrapper {
             }
 
             c3.append(" ) { ");
+            //if end
 
+
+            //methodName -> method()
             if (m.getReturnType() == Void.TYPE)
                 c3.append(" w.").append(mn).append('(').append(args(m.getParameterTypes(), "$4")).append(");").append(" return null;");
             else
@@ -288,6 +292,8 @@ public abstract class Wrapper {
         for (int i = 0; i < len; i++) {
             if (i > 0)
                 sb.append(',');
+
+            //convert and invoke
             sb.append(arg(cs[i], name + "[" + i + "]"));
         }
         return sb.toString();
